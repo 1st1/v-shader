@@ -64,17 +64,21 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
+float wave(float x) {
+  return smoothstep(0.9, 1., abs(fract(x * 10.) - 0.5) + 0.5);
+}
+
+
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution.xy;
 
   float noise = max(0.0, snoise(vec2(uTime, uv.y * 0.02)) - 0.35) * uDistortion;
 
-  float x = 1.;
-  if (floor(mod((gl_FragCoord.y + sin(mod(uTime, TAU)) * 100.) * 0.01, 3.0)) == 0.0) {
-    x = 2.5;
-  }
+  float x = (clamp(wave(uTime * 2. - uv.x / 90.), 0.1, 1.)) / (
+    exp(0.2 - abs(uv.y))
+  ) * -0.01;
 
-  x *= -noise * noise * 0.25;
+//   x *= -noise * noise * 0.25;
   float rPos = x;
   float gPos = x * 0.5;
   float bPos = x * 0.1;

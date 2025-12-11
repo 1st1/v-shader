@@ -327,9 +327,7 @@ function Environment({ lowPerf }: EnvironmentProps) {
     lowPerf, ...Array.from(Object.values(settings)),
   ]);
 
-  const mclock = clock;
-
-  useFrame(({ gl, clock }) => {
+  useFrame(({ gl }) => {
     if (!bgMaterial.current ||
       !bgCamera.current || !bgScene.current
     ) {
@@ -355,7 +353,7 @@ function Environment({ lowPerf }: EnvironmentProps) {
     lerpedPosition.current.lerp(new Vector2(posX.current, posY.current), 0.1);
     const scrollOffset = lerpedScroll.current;
 
-    time.current += mclock.current.getDelta() / 100.;
+    time.current += clock.current.getDelta() / 100.;
     const uTime = time.current;
 
     const [uPosX, uPosY] = computePositions(uTime);
@@ -373,7 +371,7 @@ function Environment({ lowPerf }: EnvironmentProps) {
     gl.render(bgScene.current, bgCamera.current);
 
     bgTargetMaterial.current.uniforms.uScene.value = target.current.texture;
-    bgTargetMaterial.current.uniforms.uTime.value = clock.getElapsedTime();
+    bgTargetMaterial.current.uniforms.uTime.value = uTime;
     bgTargetMaterial.current.uniforms.uScroll.value = calcScroll();
     bgTargetMaterial.current.uniforms.uOpacity.value = opacity;
 

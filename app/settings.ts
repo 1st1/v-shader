@@ -18,7 +18,7 @@ export const {
     bg_scene: "#191819",
     bg_aces: true,
     bg_contrast: 1.67,
-    bg_film_grain: .99,
+    bg_film_grain: .79,
     bg_brightness: 0.147,
   },
 
