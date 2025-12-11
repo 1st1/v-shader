@@ -288,13 +288,7 @@ function Environment({ lowPerf }: EnvironmentProps) {
     lerpedPosition.current.lerp(new Vector2(posX.current, posY.current), 0.1);
     const scrollOffset = lerpedScroll.current;
 
-    time.current += (
-      clock.current.getDelta() /
-      Math.min(
-        settings.ball_speed_max_break_coeff,
-        Math.pow((scrollOffset + 1), 2)
-      )
-    );
+    time.current += clock.current.getDelta() / 100.;
     const uTime = time.current;
 
     const [uPosX, uPosY] = computePositions(uTime);
@@ -305,7 +299,7 @@ function Environment({ lowPerf }: EnvironmentProps) {
 
     bgMaterial.current.uniforms.uTime.value = uTime;
     bgMaterial.current.uniforms.uOpacity.value = opacity;
-    bgMaterial.current.uniforms.uFrame.value = frameNumber.current;
+    bgMaterial.current.uniforms.uFrame.value = frameNumber.current / 2.;
     bgMaterial.current.uniforms.uMouse.value = lerpedPosition.current;
 
     gl.render(bgScene.current, bgCamera.current);

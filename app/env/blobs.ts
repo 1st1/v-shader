@@ -29,6 +29,29 @@ vec3 applyACES(vec3 x) {
   return (x * (a * x + b)) / (x * (c * x + d) + e);
 }
 
+float sdLine(vec2 p, vec2 a, vec2 b)
+{
+    vec2 pa = p - a;
+    vec2 ba = b - a;
+
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba*h);
+}
+
+float sdTriangle(vec2 p, float r) {
+  const float k = 1.7320508075688772;
+
+  p.x = abs(p.x) - r;
+  p.y = p.y + r / k;
+
+  if (p.x + k * p.y > 0.0) {
+    p = vec2(p.x - k * p.y, -k * p.x - p.y) / 2.0;
+  }
+
+  p.x -= clamp(p.x, -2.0 * r, 0.0);
+  return -length(p) * sign(p.y);
+}
+
 float pseudoGaussianNoise(vec2 p)
 {
   ivec2 ip = (ivec2(1337 * uFrame) + ivec2(p)) % ivec2(NOISE_WIDTH, NOISE_WIDTH);
@@ -36,12 +59,15 @@ float pseudoGaussianNoise(vec2 p)
   return sign(blue_noise) * (1.0 - sqrt(1.0 - abs(blue_noise)));
 }
 
-vec3 applyFilmGrain(vec3 col) {
-  float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+float calcGrain(float luma) {
   float luma_factor = max(FILM_GRAIN_INTENSITY * (luma - luma * luma), 0.0);
   float blue_noise = pseudoGaussianNoise(gl_FragCoord.xy);
   float new_luma = luma + luma_factor * blue_noise;
-  return vec3(col.rgb * new_luma / luma);
+  return new_luma / luma;
+}
+
+float wave(float x) {
+  return smoothstep(0.9, 1., abs(fract(x * 10.) - 0.5) + 0.5);
 }
 
 void main() {
@@ -50,9 +76,20 @@ void main() {
     max(uResolution.x, uResolution.y)
   );
 
-  vec3 col = vec3(.1, .1, .1);
+  float dist = 0.;
 
-  col = applyFilmGrain(col);
+  float k = (clamp(wave(uTime * 2. - uv.x / 90.), 0.1, 1.)) / (
+    exp(0.4 - abs(uv.y))
+  ) + 1.4;
+
+  dist = clamp(.0023 / abs(sdTriangle((uv + vec2(0., -0.07)), 0.16)), 0., 4.);
+  dist *= max(.43 - pow(length((uv + vec2(-0.16, -0.02))), 0.756), 0.0015);
+
+  dist *= pow(calcGrain(dist), 1.5 * k);
+
+  dist *= (k + 0.3);
+  
+  vec3 col = applyACES(vec3(clamp(dist, 0., 1.)));
 
   outColor = vec4(col, 1.);
 }`;
