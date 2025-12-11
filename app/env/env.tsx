@@ -16,11 +16,13 @@ import {
   DataTexture,
   RGBAFormat,
   LinearFilter,
+  WebGLRenderTarget,
 } from 'three'
 import { useEffect, useMemo, useRef } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 
 import bgShader from "./blobs";
+import shiftShader from "./shift";
 import { readPaneSettings } from '../settings';
 
 import { createNoise2D } from 'simplex-noise';
@@ -103,11 +105,15 @@ function Environment({ lowPerf }: EnvironmentProps) {
   const frameNumber = useRef<number>(0);
   const bgCamera = useRef<OrthographicCamera>();
   const bgScene = useRef<Scene>();
+  const bgTargetScene = useRef<Scene>();
   const bgMaterial = useRef<ShaderMaterial>();
+  const bgTargetMaterial = useRef<ShaderMaterial>();
   const currentDpr = useRef<number>(-1);
   const lastClientPosY = useRef<number>(0);
   const width = useRef<number>(window.innerWidth);
   const height = useRef<number>(window.innerHeight);
+
+  const target = useRef<WebGLRenderTarget>();
 
   const posX = useRef<number>(0);
   const posY = useRef<number>(0);
@@ -150,6 +156,12 @@ function Environment({ lowPerf }: EnvironmentProps) {
 
       if (bgMaterial.current != null) {
         bgMaterial.current.uniforms.uResolution.value = res;
+      }
+      if (bgTargetMaterial.current != null) {
+        bgTargetMaterial.current.uniforms.uResolution.value = res;
+      }
+      if (target.current != null) {
+        target.current.setSize(res.x, res.y);
       }
     };
 
@@ -231,6 +243,52 @@ function Environment({ lowPerf }: EnvironmentProps) {
     const uTime = 0;
     const [uPosX, uPosY] = computePositions(uTime);
 
+    const _target = new WebGLRenderTarget(
+      resolution.x,
+      resolution.y,
+      {
+        format: RGBAFormat,
+        stencilBuffer: false,
+        depthBuffer: false,
+        // samples: (lowPerf || MAX_SHADERS <= 512) ? 0 : 0,
+      }
+    );
+    _target.texture.colorSpace = SRGBColorSpace;
+    _target.texture.generateMipmaps = false;
+    target.current = _target;
+
+    const _bgTargetMaterial = new ShaderMaterial({
+      glslVersion: GLSL3,
+      transparent: false,
+      depthTest: false,
+      depthWrite: false,
+      blending: NoBlending,
+      defines,
+      fragmentShader: shiftShader(),
+      vertexShader,
+      uniforms: {
+        uRedOffset: { value: 0.0 },
+        uGreenOffset: { value: 0.0 },
+        uBlueOffset: { value: 0.0 },
+
+        uDistortion: { value: 0.5 },
+        uSpeed: { value: 0.5 },
+
+        uBlueNoise: { value: noiseTexture },
+        uTime: { value: uTime },
+        uMouse: { value: new Vector2(0, 0) },
+        uScroll: { value: calcScroll() },
+        uScene: { value: target.current },
+        uResolution: { value: resolution },
+        uRad: { value: uRad },
+        uPosX: { value: uPosX },
+        uPosY: { value: uPosY },
+        uOpacity: { value: 0 },
+        uFrame: { value: 0 },
+      },
+    });
+    bgTargetMaterial.current = _bgTargetMaterial;
+
     const _bgMaterial = new ShaderMaterial({
       glslVersion: GLSL3,
       transparent: false,
@@ -258,11 +316,20 @@ function Environment({ lowPerf }: EnvironmentProps) {
     const bgTriangle = new Mesh(getFullscreenTriangle(), _bgMaterial);
     bgTriangle.frustumCulled = false;
     _bgScene.add(bgTriangle);
+
+    const _bgTargetScene = new Scene();
+    bgTargetScene.current = _bgTargetScene;
+
+    const bgTargetTriangle = new Mesh(getFullscreenTriangle(), _bgTargetMaterial);
+    bgTargetTriangle.frustumCulled = false;
+    _bgTargetScene.add(bgTargetTriangle);
   }, [
     lowPerf, ...Array.from(Object.values(settings)),
   ]);
 
-  useFrame(({ gl }) => {
+  const mclock = clock;
+
+  useFrame(({ gl, clock }) => {
     if (!bgMaterial.current ||
       !bgCamera.current || !bgScene.current
     ) {
@@ -288,7 +355,7 @@ function Environment({ lowPerf }: EnvironmentProps) {
     lerpedPosition.current.lerp(new Vector2(posX.current, posY.current), 0.1);
     const scrollOffset = lerpedScroll.current;
 
-    time.current += clock.current.getDelta() / 100.;
+    time.current += mclock.current.getDelta() / 100.;
     const uTime = time.current;
 
     const [uPosX, uPosY] = computePositions(uTime);
@@ -299,10 +366,19 @@ function Environment({ lowPerf }: EnvironmentProps) {
 
     bgMaterial.current.uniforms.uTime.value = uTime;
     bgMaterial.current.uniforms.uOpacity.value = opacity;
-    bgMaterial.current.uniforms.uFrame.value = frameNumber.current / 2.;
+    bgMaterial.current.uniforms.uFrame.value = frameNumber.current;
     bgMaterial.current.uniforms.uMouse.value = lerpedPosition.current;
 
+    gl.setRenderTarget(target.current);
     gl.render(bgScene.current, bgCamera.current);
+
+    bgTargetMaterial.current.uniforms.uScene.value = target.current.texture;
+    bgTargetMaterial.current.uniforms.uTime.value = clock.getElapsedTime();
+    bgTargetMaterial.current.uniforms.uScroll.value = calcScroll();
+    bgTargetMaterial.current.uniforms.uOpacity.value = opacity;
+
+    gl.setRenderTarget(null);
+    gl.render(bgTargetScene.current, bgCamera.current);
   }, 1);
 
   return <>

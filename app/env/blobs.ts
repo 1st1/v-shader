@@ -79,13 +79,13 @@ void main() {
   float dist = 0.;
 
   float k = (clamp(wave(uTime * 2. - uv.x / 90.), 0.1, 1.)) / (
-    exp(0.4 - abs(uv.y))
-  ) + 1.4;
+    exp(0.2 - abs(uv.y))
+  ) + 1.5;
 
   dist = clamp(.0023 / abs(sdTriangle((uv + vec2(0., -0.07)), 0.16)), 0., 4.);
-  dist *= max(.43 - pow(length((uv + vec2(-0.16, -0.02))), 0.756), 0.0015);
+  dist *= max(.43 - pow(length((uv + vec2(-0.14, -0.02))), 0.756), 0.0015);
 
-  dist *= pow(calcGrain(dist), 1.5 * k);
+  dist *= pow(calcGrain(dist), 1.8 * k);
 
   dist *= (k + 0.3);
   
