@@ -103,17 +103,17 @@ function Environment({ lowPerf }: EnvironmentProps) {
   const lerpedScroll = useRef(0);
 
   const frameNumber = useRef<number>(0);
-  const bgCamera = useRef<OrthographicCamera>();
-  const bgScene = useRef<Scene>();
-  const bgTargetScene = useRef<Scene>();
-  const bgMaterial = useRef<ShaderMaterial>();
-  const bgTargetMaterial = useRef<ShaderMaterial>();
+  const bgCamera = useRef<OrthographicCamera>(undefined);
+  const bgScene = useRef<Scene>(undefined);
+  const bgTargetScene = useRef<Scene>(undefined);
+  const bgMaterial = useRef<ShaderMaterial>(undefined);
+  const bgTargetMaterial = useRef<ShaderMaterial>(undefined);
   const currentDpr = useRef<number>(-1);
   const lastClientPosY = useRef<number>(0);
   const width = useRef<number>(window.innerWidth);
   const height = useRef<number>(window.innerHeight);
 
-  const target = useRef<WebGLRenderTarget>();
+  const target = useRef<WebGLRenderTarget>(undefined);
 
   const posX = useRef<number>(0);
   const posY = useRef<number>(0);
@@ -369,16 +369,16 @@ function Environment({ lowPerf }: EnvironmentProps) {
     bgMaterial.current.uniforms.uFrame.value = frameNumber.current;
     bgMaterial.current.uniforms.uMouse.value = lerpedPosition.current;
 
-    gl.setRenderTarget(target.current);
+    gl.setRenderTarget(target.current!);
     gl.render(bgScene.current, bgCamera.current);
 
-    bgTargetMaterial.current.uniforms.uScene.value = target.current.texture;
-    bgTargetMaterial.current.uniforms.uTime.value = clock.getElapsedTime();
-    bgTargetMaterial.current.uniforms.uScroll.value = calcScroll();
-    bgTargetMaterial.current.uniforms.uOpacity.value = opacity;
+    bgTargetMaterial.current!.uniforms.uScene.value = target.current!.texture;
+    bgTargetMaterial.current!.uniforms.uTime.value = clock.getElapsedTime();
+    bgTargetMaterial.current!.uniforms.uScroll.value = calcScroll();
+    bgTargetMaterial.current!.uniforms.uOpacity.value = opacity;
 
     gl.setRenderTarget(null);
-    gl.render(bgTargetScene.current, bgCamera.current);
+    gl.render(bgTargetScene.current!, bgCamera.current);
   }, 1);
 
   return <>
