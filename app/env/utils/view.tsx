@@ -190,7 +190,7 @@ function Container({ visible = true, canvasSize, scene, index, children, frames,
     if (isNonLegacyCanvasSize(canvasSize)) return
     console.warn(
       'Detected @react-three/fiber canvas size does not include position information. <View /> may not work as expected. ' +
-        'Upgrade to @react-three/fiber ^8.1.0 for support.\n See https://github.com/pmndrs/drei/issues/944'
+      'Upgrade to @react-three/fiber ^8.1.0 for support.\n See https://github.com/pmndrs/drei/issues/944'
     )
   }, [])
 
@@ -302,7 +302,7 @@ const HtmlView = React.forwardRef(
   }
 )
 
-export type ViewportProps = { Port: () => JSX.Element } & React.ForwardRefExoticComponent<
+export type ViewportProps = { Port: () => React.JSX.Element } & React.ForwardRefExoticComponent<
   ViewProps & React.RefAttributes<HTMLElement | Group>
 >
 
